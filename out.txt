@@ -1,0 +1,4 @@
+SELECT * FROM  products  ;
+|  101  ||  Laptop  ||  999.99  ||  10  |
+|  102  ||  Smartphone  ||  499.99  ||  25  |
+|  103  ||  Tablet  ||  299.99  ||  15  |

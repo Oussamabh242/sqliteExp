@@ -1,7 +1,8 @@
 #include "db_utils.h"
+#include <stdio.h>
+#include <string.h>
 
 
-static int rowCount = 0 ;
 
 
 
@@ -42,13 +43,12 @@ t_names get_tables_name(sqlite3 *db){
   if (rc != SQLITE_OK) {
       fprintf(stderr, "SQL error: %s\n", zErrMsg);
       sqlite3_free(zErrMsg);
-      // Free allocated memory before returning
       for (int i = 0; i < t.len; i++) {
           free(t.names[i]);
       }
       free(t.names);
-      t.names = NULL; // Set to NULL to indicate failure
-      t.len = 0; // Reset length
+      t.names = NULL; 
+      t.len = 0; 
   }
 
   return t;  
@@ -62,18 +62,43 @@ void free_t_names(t_names *t){
     free(t->names);
     t->names = NULL ;
   }
+};
+
+static int table_contents_callback(void* data , int argc , char **argv , char **azColName){
+  static int rowCount = 0 ; 
+  table_content *thing = (table_content *)data ; 
+  thing->cols = argc ;   
+  
+  thing->content = realloc(thing->content ,(thing->rows +1)*sizeof(char **)) ; 
+
+  char **col = malloc(argc * sizeof(char *));
+  for(int i = 0 ; i<argc ; i++){
+    col[i] = malloc( strlen(argv[i])*sizeof(char)  ) ;
+    strcpy(col[i] , argv[i]) ;
+  }
+  thing->content[thing->rows] = col ;
+
+  thing->rows++ ; 
+
+  return 0 ;
 }
-/*int execute_query(sqlite3 *db, const char *sql, t_names* data, int maxRows) {*/
-/*    char *zErrMsg = 0;*/
-/*    int rc = sqlite3_exec(db, sql, tnames_callback_callback, (void *)data, &zErrMsg);*/
-/**/
-/*    if (rc != SQLITE_OK) {*/
-/*        fprintf(stderr, "SQL error: %s\n", zErrMsg);*/
-/*        sqlite3_free(zErrMsg);*/
-/*        return rc;*/
-/*    } else {*/
-/*        fprintf(stdout, "Operation done successfully\n");*/
-/*    }*/
-/**/
-/*    return SQLITE_OK;*/
-/*} */
+
+table_content *get_table_contents(sqlite3 *db , char *table_name){
+  char sql[200] = "SELECT * FROM  " ;
+  strcat(sql ,table_name);
+  strcat(sql , " ;") ;
+  printf("%s\n" , sql);
+  char *zErrMsg = 0;
+  
+  table_content *thing = malloc(sizeof(table_content)); 
+  thing->rows = 0;
+  thing->cols = 0;
+  thing->content = NULL; 
+  int rc = sqlite3_exec(db ,sql ,table_contents_callback ,(void *)thing , &zErrMsg );
+  if(rc != SQLITE_OK){
+    fprintf(stderr , "error executing the get contents query \n") ;  
+  }
+
+  return thing ;
+}
+
